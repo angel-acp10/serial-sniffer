@@ -34,8 +34,8 @@ volatile fragment_t currFrag_uart3;
 cBuffHandle_t rxCirc2;
 cBuffHandle_t rxCirc3;
 
-volatile _Bool rxBuff2_ovf = 0;
-volatile _Bool rxBuff3_ovf = 0;
+volatile _Bool rxCirc2_ovf = 0;
+volatile _Bool rxCirc3_ovf = 0;
 
 /******************************************************************************
  Local variables
@@ -95,14 +95,14 @@ uint16_t sniffer_fillOutputBuffer(uint8_t *out, uint16_t maxSize, uint8_t *statu
 	uint16_t nextChunck;
 	uint16_t fragsCnt = 0;
 
-	if(rxBuff2_ovf)
+	if(rxCirc2_ovf)
 	{
-		*status = STATUS_RXBUFF2_OVF;
+		*status = STATUS_RXCIRC2_OVF;
 		return 0;
 	}
-	else if(rxBuff3_ovf)
+	else if(rxCirc3_ovf)
 	{
-		*status = STATUS_RXBUFF3_OVF;
+		*status = STATUS_RXCIRC3_OVF;
 		return 0;
 	}
 	else if( fragsQueue_length(&queueFrag) == 0)
@@ -118,7 +118,7 @@ uint16_t sniffer_fillOutputBuffer(uint8_t *out, uint16_t maxSize, uint8_t *statu
 		if( (size + nextChunck) > maxSize)
 		{
 			if(fragsCnt == 0) // fragment is too long to fit into output buffer
-				*status = STATUS_TXBUFF1_OVF;
+				*status = STATUS_TXCIRC1_OVF;
 			else
 				break; // no more fragments fit into output buffer
 		}

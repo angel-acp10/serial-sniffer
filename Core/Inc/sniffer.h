@@ -35,8 +35,8 @@ extern cBuffHandle_t rxCirc2;
 extern cBuffHandle_t rxCirc3;
 extern uint8_t rxBuff2[RXCIRC2_SIZE];
 extern uint8_t rxBuff3[RXCIRC3_SIZE];
-extern volatile _Bool rxBuff2_ovf;
-extern volatile _Bool rxBuff3_ovf;
+extern volatile _Bool rxCirc2_ovf;
+extern volatile _Bool rxCirc3_ovf;
 
 
 extern volatile fragmentStage_t fragStage_uart2;

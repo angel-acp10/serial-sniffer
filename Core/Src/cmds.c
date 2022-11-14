@@ -51,9 +51,10 @@ static uint16_t cmd_getAllQueue(const uint8_t *in, uint8_t *out);
 /******************************************************************************
  Global variables
  *****************************************************************************/
-uint8_t rxIt1[RXIT1_SIZE];
+
 
 // circular buffer
+volatile _Bool rxCirc1_ovf = 0;
 uint8_t rxBuff1[RXCIRC1_SIZE];
 cBuffHandle_t rxCirc1;
 
@@ -76,7 +77,7 @@ _Bool cmds_init()
 {
 	cBuff_init(&rxCirc1, rxBuff1, RXCIRC1_SIZE);
 
-	if(HAL_OK != HAL_UARTEx_ReceiveToIdle_IT(&huart1, rxIt1, RXIT1_SIZE) )
+	if(HAL_OK != HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rxCirc1.buff, rxCirc1.maxLength) )
 		return 0;
 
 	return 1;
@@ -297,9 +298,9 @@ static uint16_t cmd_getAllQueue(const uint8_t *in, uint8_t *out)
 		// out[bytesToSend-1] = calcChecksum(out, bytesToSend-1);
 		return bytesToSend;
 
-	case STATUS_TXBUFF1_OVF:
-	case STATUS_RXBUFF2_OVF:
-	case STATUS_RXBUFF3_OVF:
+	case STATUS_TXCIRC1_OVF:
+	case STATUS_RXCIRC2_OVF:
+	case STATUS_RXCIRC3_OVF:
 		return shortReply(out, in[0], status);
 
 	default:

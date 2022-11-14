@@ -8,9 +8,9 @@
 #define STATUS_OK 				(0x00)
 #define STATUS_EMPTY_FRAGQUEUE	(0x01)
 #define STATUS_FAIL				(0x10)
-#define STATUS_TXBUFF1_OVF		(0x11)
-#define STATUS_RXBUFF2_OVF		(0x12)
-#define STATUS_RXBUFF3_OVF		(0x13)
+#define STATUS_TXCIRC1_OVF		(0x11)
+#define STATUS_RXCIRC2_OVF		(0x12)
+#define STATUS_RXCIRC3_OVF		(0x13)
 
 #define STATUS_MCU_NAME		("STM32F302R8")
 
