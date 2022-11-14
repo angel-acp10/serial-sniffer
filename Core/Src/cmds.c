@@ -76,8 +76,7 @@ _Bool cmds_init()
 {
 	cBuff_init(&rxCirc1, rxBuff1, RXCIRC1_SIZE);
 
-	uint8_t * ptr = &rxCirc1.buff[rxCirc1.rIdx];
-	if(HAL_OK != HAL_UARTEx_ReceiveToIdle_IT(&huart1, ptr, RXIT1_SIZE) )
+	if(HAL_OK != HAL_UARTEx_ReceiveToIdle_IT(&huart1, rxIt1, RXIT1_SIZE) )
 		return 0;
 
 	return 1;
