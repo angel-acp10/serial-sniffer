@@ -59,17 +59,21 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size)
 		cmds_UART1_HAL_UARTEx_RxEventCallback(huart, Size);
 
 	else if(huart->Instance == USART2)
-		sniffer_UART2_HAL_UARTEx_RxEventCallback(huart, Size);
+    sniffer_HAL_UARTEx_RxEventCallback(huart,
+                            &currFrag_uart2,
+                            &fragStage_uart2,
+                            &rxBuff2_ovf);
 
 	else if(huart->Instance == USART3)
-		sniffer_UART3_HAL_UARTEx_RxEventCallback(huart, Size);
+    sniffer_HAL_UARTEx_RxEventCallback(huart,
+                            &currFrag_uart3,
+                            &fragStage_uart3,
+                            &rxBuff3_ovf);
 }
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
 extern TIM_HandleTypeDef htim6;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-extern DMA_HandleTypeDef hdma_usart3_rx;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
 extern UART_HandleTypeDef huart3;
@@ -216,34 +220,6 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles DMA1 channel3 global interrupt.
-  */
-void DMA1_Channel3_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel3_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel3_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart3_rx);
-  /* USER CODE BEGIN DMA1_Channel3_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel3_IRQn 1 */
-}
-
-/**
-  * @brief This function handles DMA1 channel6 global interrupt.
-  */
-void DMA1_Channel6_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel6_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel6_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_usart2_rx);
-  /* USER CODE BEGIN DMA1_Channel6_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel6_IRQn 1 */
-}
-
-/**
   * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
   */
 void USART1_IRQHandler(void)
@@ -263,9 +239,9 @@ void USART1_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-  uartIrq_startEndMessageDetection(&huart2,
-								  &currFragment_uart2,
-								  &fragmentStage_uart2);
+	sniffer_USART_IRQHandler(&huart2,
+							  &currFrag_uart2,
+							  &fragStage_uart2);
   /* USER CODE END USART2_IRQn 0 */
   HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
@@ -279,9 +255,9 @@ void USART2_IRQHandler(void)
 void USART3_IRQHandler(void)
 {
   /* USER CODE BEGIN USART3_IRQn 0 */
-  uartIrq_startEndMessageDetection(&huart3, 
-		  	  	  	  	  	  	  &currFragment_uart3,
-                                  &fragmentStage_uart3);
+	sniffer_USART_IRQHandler(&huart3,
+							  &currFrag_uart3,
+							  &fragStage_uart3);
   /* USER CODE END USART3_IRQn 0 */
   HAL_UART_IRQHandler(&huart3);
   /* USER CODE BEGIN USART3_IRQn 1 */

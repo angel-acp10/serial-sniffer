@@ -26,10 +26,10 @@
 /******************************************************************************
  Global variables
  *****************************************************************************/
-volatile int8_t fragmentStage_uart2;
-volatile int8_t fragmentStage_uart3;
-volatile fragment_t currFragment_uart2;
-volatile fragment_t currFragment_uart3;
+volatile fragmentStage_t fragStage_uart2;
+volatile fragmentStage_t fragStage_uart3;
+volatile fragment_t currFrag_uart2;
+volatile fragment_t currFrag_uart3;
 
 cBuffHandle_t rxCirc2;
 cBuffHandle_t rxCirc3;
@@ -40,9 +40,6 @@ volatile _Bool rxBuff3_ovf = 0;
 /******************************************************************************
  Local variables
  *****************************************************************************/
-uint8_t rxDma2[RXDMA2_SIZE]; // small buffers where DMA will write on
-uint8_t rxDma3[RXDMA3_SIZE];
-
 uint8_t rxBuff2[RXCIRC2_SIZE];
 uint8_t rxBuff3[RXCIRC3_SIZE];
 
@@ -65,30 +62,29 @@ _Bool sniffer_init()
 
 	fragsQueue_init(&queueFrag, fragBuff, QUEUE_SIZE);
 	
-	fragmentStage_uart2 = -1;
-	currFragment_uart2.uartId = 0x02;
-	currFragment_uart2.cBuff = &rxCirc2;
-	currFragment_uart2.startIdx = 0;
-	currFragment_uart2.length = 0;
-	currFragment_uart2.startTime = 0;
-	currFragment_uart2.endTime = 0;
+	fragStage_uart2 = FRAGMENT_WAIT_FOR_FIRST_BYTE;
+	currFrag_uart2.uartId = 0x02;
+	currFrag_uart2.cBuff = &rxCirc2;
+	currFrag_uart2.startIdx = 0;
+	currFrag_uart2.length = 0;
+	currFrag_uart2.startTime = 0;
+	currFrag_uart2.endTime = 0;
 
-	fragmentStage_uart3 = -1;
-	currFragment_uart3.uartId = 0x03;
-	currFragment_uart3.cBuff = &rxCirc3;
-	currFragment_uart3.startIdx = 0;
-	currFragment_uart3.length = 0;
-	currFragment_uart3.startTime = 0;
-	currFragment_uart3.endTime = 0;
+	fragStage_uart3 = FRAGMENT_WAIT_FOR_FIRST_BYTE;
+	currFrag_uart3.uartId = 0x03;
+	currFrag_uart3.cBuff = &rxCirc3;
+	currFrag_uart3.startIdx = 0;
+	currFrag_uart3.length = 0;
+	currFrag_uart3.startTime = 0;
+	currFrag_uart3.endTime = 0;
 
-	if( HAL_OK != HAL_UARTEx_ReceiveToIdle_DMA(&huart2, rxDma2, RXDMA2_SIZE) )
+
+	if( HAL_OK != HAL_UARTEx_ReceiveToIdle_IT(&huart2, rxCirc2.buff, 1) )
 		return 0;
 
-	if( HAL_OK != HAL_UARTEx_ReceiveToIdle_DMA(&huart3, rxDma3, RXDMA3_SIZE) )
+	if( HAL_OK != HAL_UARTEx_ReceiveToIdle_IT(&huart3, rxCirc3.buff, 1) )
 		return 0;
 
-	__HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT);
-	__HAL_DMA_DISABLE_IT(&hdma_usart3_rx, DMA_IT_HT);
 
 	return 1;
 }
@@ -170,7 +166,7 @@ static uint16_t sniffer_getFragmentWithHeader(uint8_t *out)
 	out[10] = (uint8_t) (0x000000FF&f.endTime);
 
 	// data of fragment
-	cBuff_read(&f.cBuff[f.startIdx], &out[11], f.length);
+	cBuff_read(f.cBuff, &out[11], f.length);
 
 	return bytesToReturn;
 }
