@@ -195,7 +195,7 @@ static void writeToUart(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size
 	HAL_StatusTypeDef txStatus = HAL_BUSY;
 	while(txStatus == HAL_BUSY)
 	{
-		txStatus = HAL_UART_Transmit_IT(huart, pData, Size);
+		txStatus = HAL_UART_Transmit_DMA(huart, pData, Size);
 	}
 	if(txStatus == HAL_OK)
 		return;
