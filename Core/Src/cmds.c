@@ -11,7 +11,7 @@
 /******************************************************************************
  Constants and definitions
  *****************************************************************************/
-#define CMDS_NUM (6)
+#define CMDS_NUM (4)
 
 // the maximum data that will be placed on TX_SIZE is RXCIRC2_SIZE + header data
 #define TX_SIZE (RXCIRC2_SIZE + 50)
@@ -38,15 +38,15 @@ typedef struct{
 /******************************************************************************
  Local Function Prototypes
  *****************************************************************************/
+static uint16_t cmd_getId(const uint8_t *in, uint8_t *out);
+static uint16_t cmd_initUart(const uint8_t *in, uint8_t *out);
+static uint16_t cmd_deInitUart(const uint8_t *in, uint8_t *out);
+static uint16_t cmd_getAllQueue(const uint8_t *in, uint8_t *out);
+
+static void setUartConfig(UART_HandleTypeDef * h, const uint8_t * in);
 static void writeToUart(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size);
 static uint16_t shortReply(uint8_t *out, uint8_t cmd, uint8_t status);
 static uint8_t calcChecksum(uint8_t *arr, uint16_t len);
-
-static uint16_t cmd_getId(const uint8_t *in, uint8_t *out);
-static uint16_t cmd_setConfig(const uint8_t *in, uint8_t *out);
-static uint16_t cmd_init(const uint8_t *in, uint8_t *out);
-static uint16_t cmd_deInit(const uint8_t *in, uint8_t *out);
-static uint16_t cmd_getAllQueue(const uint8_t *in, uint8_t *out);
 
 /******************************************************************************
  Global variables
@@ -64,10 +64,9 @@ cBuffHandle_t rxCirc1;
 static rxCmd_t cmdsMap[CMDS_NUM+1] = {
 		{0, 	NULL},
 		{4, 	&cmd_getId},		// 0x01
-		{10, 	&cmd_setConfig},	// 0x02
-		{4, 	&cmd_init},			// 0x03
-		{4, 	&cmd_deInit},		// 0x04
-		{4,		&cmd_getAllQueue} 	// 0x05
+		{10, 	&cmd_initUart},		// 0x02
+		{4, 	&cmd_deInitUart},	// 0x03
+		{4,		&cmd_getAllQueue} 	// 0x04
 };
 
 /******************************************************************************
@@ -172,10 +171,12 @@ void cmds_process()
 
 	case 3:
 	stage3: // check the checksum, execute the command and send a reply
-		if( rx[currLen-1] == calcChecksum(rx, currLen-1))
-			toWrite = cmdsMap[cmd].func(rx, tx);
-		else
+		if( rx[currLen-1] != calcChecksum(rx, currLen-1))
 			toWrite = shortReply(tx, ERROR_CHECKSUM, ERROR_CHECKSUM);
+		else if( cmdsMap[cmd].func == NULL )
+			toWrite = shortReply(tx, STATUS_FAIL, STATUS_FAIL);
+		else
+			toWrite = cmdsMap[cmd].func(rx, tx);
 
 		tx[toWrite-1] = calcChecksum(tx, toWrite-1);
 		writeToUart(&huart1, tx, toWrite);
@@ -190,40 +191,6 @@ void cmds_process()
 /******************************************************************************
  Local Functions
  *****************************************************************************/
-static void writeToUart(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
-{
-	HAL_StatusTypeDef txStatus = HAL_BUSY;
-	while(txStatus == HAL_BUSY)
-	{
-		txStatus = HAL_UART_Transmit_DMA(huart, pData, Size);
-	}
-	if(txStatus == HAL_OK)
-		return;
-	else
-		while(1);
-}
-
-static uint16_t shortReply(uint8_t *out, uint8_t cmd, uint8_t status)
-{
-	uint16_t bytesToSend = 5;
-	out[0] = cmd;
-	out[1] = (uint8_t)(((bytesToSend-3)&0xFF00)>>8);
-	out[2] = (uint8_t)((bytesToSend-3)&0x00FF);
-	out[3] = status;
-	// out[4] checksum
-	return bytesToSend;
-}
-
-static uint8_t calcChecksum(uint8_t *arr, uint16_t len)
-{
-	uint8_t csum = 0;
-
-	for(uint16_t i=0; i<len; i++)
-		csum += arr[i];
-
-	return ~csum;
-}
-
 static uint16_t cmd_getId(const uint8_t *in, uint8_t *out)
 {
 	uint16_t maxNameLen = 25;
@@ -239,32 +206,27 @@ static uint16_t cmd_getId(const uint8_t *in, uint8_t *out)
 	return bytesToSend;
 }
 
-static uint16_t cmd_setConfig(const uint8_t *in, uint8_t *out)
+static uint16_t cmd_initUart(const uint8_t *in, uint8_t *out)
 {
-	uint16_t bytesToSend;
-	uint8_t mode;
-	uint32_t bauds;
-	uint8_t basic;
-	uint8_t clock;
+	huart2.Instance = USART2;
+	huart3.Instance = USART3;
+	setUartConfig(&huart2, in);
+	setUartConfig(&huart3, in);
 
-	mode = in[3];
-	bauds = ((uint32_t)in[4])<<16;
-	bauds |= ((uint32_t)in[5])<<8;
-	bauds |= ((uint32_t)in[6]);
-	basic = in[7];
-	clock = in[8];
-
-	return shortReply(out, in[0], STATUS_OK);
+	if (HAL_OK==HAL_UART_Init(&huart2) && HAL_OK==HAL_UART_Init(&huart3))
+	{
+		sniffer_init();
+		return shortReply(out, in[0], STATUS_OK);
+	}
+	return shortReply(out, in[0], STATUS_FAIL);
 }
 
-static uint16_t cmd_init(const uint8_t *in, uint8_t *out)
+static uint16_t cmd_deInitUart(const uint8_t *in, uint8_t *out)
 {
-	return shortReply(out, in[0], STATUS_OK);
-}
+	if(HAL_OK==HAL_UART_DeInit(&huart2) && HAL_OK==HAL_UART_DeInit(&huart3))
+		return shortReply(out, in[0], STATUS_OK);
 
-static uint16_t cmd_deInit(const uint8_t *in, uint8_t *out)
-{
-	return shortReply(out, in[0], STATUS_OK);
+	return shortReply(out, in[0], STATUS_FAIL);
 }
 
 static uint16_t cmd_getAllQueue(const uint8_t *in, uint8_t *out)
@@ -306,4 +268,93 @@ static uint16_t cmd_getAllQueue(const uint8_t *in, uint8_t *out)
 	default:
 		return 0;
 	}
+}
+
+static void setUartConfig(UART_HandleTypeDef * h, const uint8_t * in)
+{
+	uint32_t bauds;
+	uint8_t mode;
+	uint8_t wordLength, parity, stopBits;
+
+	mode = in[3];
+	bauds = ((uint32_t)in[4])<<16;
+	bauds |= ((uint32_t)in[5])<<8;
+	bauds |= ((uint32_t)in[6]);
+
+	wordLength = (in[7] & (1<<7))>>7;
+	parity = (in[7] & (0b11<<5))>>5;
+	stopBits = (in[7] & (0b11<<3))>>3;
+
+	h->Init.Mode = UART_MODE_TX_RX;
+
+	switch(mode)
+	{
+	case 3:	h->Init.HwFlowCtl = UART_HWCONTROL_RTS_CTS;	break;
+	case 2:	h->Init.HwFlowCtl = UART_HWCONTROL_RTS;		break;
+	case 1:	h->Init.HwFlowCtl = UART_HWCONTROL_CTS;		break;
+	default:
+	case 0:	h->Init.HwFlowCtl = UART_HWCONTROL_NONE;	break;
+	}
+	huart2.Init.BaudRate = bauds;
+	h->Init.BaudRate = bauds;
+
+	switch(wordLength)
+	{
+	case 1:	h->Init.WordLength = UART_WORDLENGTH_9B;	break;
+	default:
+	case 0:	h->Init.WordLength = UART_WORDLENGTH_8B;	break;
+	}
+
+	switch(parity)
+	{
+	case 2:	h->Init.Parity = UART_PARITY_ODD;	break;
+	case 1:	h->Init.Parity = UART_PARITY_EVEN;	break;
+	default:
+	case 0:	h->Init.Parity = UART_PARITY_NONE;	break;
+	}
+
+	switch(stopBits)
+	{
+	case 1:	h->Init.StopBits = UART_STOPBITS_2;	break;
+	default:
+	case 0:	h->Init.StopBits = UART_STOPBITS_1;	break;
+	}
+
+	h->Init.OverSampling = UART_OVERSAMPLING_16;
+	h->Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	h->AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+}
+
+static void writeToUart(UART_HandleTypeDef *huart, uint8_t *pData, uint16_t Size)
+{
+	HAL_StatusTypeDef txStatus = HAL_BUSY;
+	while(txStatus == HAL_BUSY)
+	{
+		txStatus = HAL_UART_Transmit_DMA(huart, pData, Size);
+	}
+	if(txStatus == HAL_OK)
+		return;
+	else
+		while(1);
+}
+
+static uint16_t shortReply(uint8_t *out, uint8_t cmd, uint8_t status)
+{
+	uint16_t bytesToSend = 5;
+	out[0] = cmd;
+	out[1] = (uint8_t)(((bytesToSend-3)&0xFF00)>>8);
+	out[2] = (uint8_t)((bytesToSend-3)&0x00FF);
+	out[3] = status;
+	// out[4] checksum
+	return bytesToSend;
+}
+
+static uint8_t calcChecksum(uint8_t *arr, uint16_t len)
+{
+	uint8_t csum = 0;
+
+	for(uint16_t i=0; i<len; i++)
+		csum += arr[i];
+
+	return ~csum;
 }
