@@ -45,7 +45,7 @@ static inline uint16_t cBuff_availBytes(cBuffHandle_t * h)
  */
 static inline uint16_t cBuff_maxBytesUntilArrayOvf(cBuffHandle_t * h)
 {
-	return (h->maxLength-1 - h->wIdx);
+	return (h->maxLength - h->wIdx);
 }
 
 static inline void cBuff_clear(cBuffHandle_t * h)

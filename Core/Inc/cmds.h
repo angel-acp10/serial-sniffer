@@ -34,6 +34,7 @@ static inline void cmds_UART1_HAL_UARTEx_RxEventCallback(
 	HAL_UARTEx_ReceiveToIdle_DMA(huart,
 			&rxCirc1.buff[rxCirc1.wIdx],
 			MIN(availBytes, dmaMaxBytes));
+	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
 }
 
 #endif

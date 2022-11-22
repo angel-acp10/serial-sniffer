@@ -78,6 +78,7 @@ _Bool cmds_init()
 
 	if(HAL_OK != HAL_UARTEx_ReceiveToIdle_DMA(&huart1, rxCirc1.buff, rxCirc1.maxLength) )
 		return 0;
+	__HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
 
 	return 1;
 }
