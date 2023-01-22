@@ -116,12 +116,16 @@ static inline uint16_t cBuff_incrementWriteIdx(cBuffHandle_t * h, uint16_t size)
 static inline uint16_t cBuff_read(cBuffHandle_t * h, uint8_t *data, uint16_t size)
 {
 	uint16_t size1, size2;
-
+	/*	TODO: check why this check makes the program fail, seems like h->length is not always ok?
 	if( size > h->length )
+	{
+		HAL_GPIO_WritePin(BLUE_LED_GPIO_Port, BLUE_LED_Pin, GPIO_PIN_SET);
 		size = h->length; // user is requesting more data than the available
-
+	}
+	*/
 	if( (h->rIdx + size) > h->maxLength)
 	{
+		//HAL_GPIO_TogglePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin);
 		size1 = h->maxLength - h->rIdx;
 		memcpy( data, &h->buff[h->rIdx], size1 );
 
@@ -134,6 +138,7 @@ static inline uint16_t cBuff_read(cBuffHandle_t * h, uint8_t *data, uint16_t siz
 	}
 	else
 	{
+		//HAL_GPIO_TogglePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin);
 		memcpy( data, &h->buff[h->rIdx], size );
 		h->rIdx += size;
 		if(h->rIdx >= h->maxLength)

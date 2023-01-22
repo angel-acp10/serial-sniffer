@@ -11,10 +11,10 @@ typedef struct{
 
 	cBuffHandle_t *cBuff; // circular buffer where the data resides
 	uint16_t startIdx; // index of the "circBuffPtr->buff" where the fragment starts
-	uint16_t length; // index of the "circBuffPtr->buff" where the fragment ends
+	uint16_t length; // length of the data fragment
 
 	uint32_t startTime; // start time stamp based on timer
-	uint32_t endTime; // start time stamp based on timer
+	uint32_t endTime; // end time stamp based on timer
 }fragment_t;
 
 typedef struct{

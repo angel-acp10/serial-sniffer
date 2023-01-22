@@ -165,8 +165,19 @@ static uint16_t sniffer_getFragmentWithHeader(uint8_t *out)
 	out[9] = (uint8_t)((0x0000FF00&f.endTime) >> 8);
 	out[10] = (uint8_t) (0x000000FF&f.endTime);
 
+	/*
+	uint8_t val = f.cBuff->buff[ f.startIdx ];
+	if(val!= (uint8_t)'a' && val != (uint8_t)'0')
+		HAL_GPIO_WritePin(YELLOW_LED_GPIO_Port, YELLOW_LED_Pin, GPIO_PIN_SET);
+	*/
+
 	// data of fragment
 	cBuff_read(f.cBuff, &out[11], f.length);
+
+	/*
+	if(out[11] != (uint8_t)'a' && out[11] != (uint8_t)'0')
+		HAL_GPIO_WritePin(RED_LED_GPIO_Port, RED_LED_Pin, GPIO_PIN_SET);
+	*/
 
 	return bytesToReturn;
 }
